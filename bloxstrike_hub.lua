@@ -394,19 +394,151 @@ end
 
 regGenv("drawings", allDrawings)
 
+local _acSgRef = nil
+
+local saInit = false
+pcall(function()
+    if not hasHook then return end
+    local mt = getrawmetatable(game)
+    if not mt then return end
+    local origNC = mt.__namecall
+    if not origNC then return end
+    local wf = newcclosure or function(f) return f end
+    if setreadonly then setreadonly(mt, false) end
+    if make_writeable then make_writeable(mt) end
+    mt.__namecall = wf(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "FireServer" or method == "InvokeServer" then
+            local rn = ""
+            pcall(function() rn = self.Name:lower() end)
+            if rn:find("ban") or rn:find("kick") or rn:find("detect") or rn:find("report")
+                or rn:find("flag") or rn:find("secur") or rn:find("cheat") or rn:find("violat")
+                or rn:find("punish") or rn:find("guard") or rn:find("exploit") or rn:find("hack")
+                or rn:find("verify") or rn:find("check") or rn:find("scan") or rn:find("monitor")
+                or rn:find("integrity") or rn:find("valid") or rn:find("anticheat") or rn:find("anti_cheat")
+                or rn:find("ac_") or rn:find("_ac") then
+                return nil
+            end
+            if CFG.SAim.On and F.SilentTgt then
+                local stOk, stg = pcall(F.SilentTgt, F)
+                if stOk and stg and math.random(1, 100) <= CFG.SAim.HC then
+                    local a = {...}
+                    for i, v in pairs(a) do
+                        if typeof(v) == "CFrame" then a[i] = CFrame.new(stg.Position)
+                        elseif typeof(v) == "Vector3" then a[i] = stg.Position end
+                    end
+                    return origNC(self, unpack(a))
+                end
+            end
+        end
+        return origNC(self, ...)
+    end)
+    if setreadonly then setreadonly(mt, true) end
+    if make_readonly then make_readonly(mt) end
+    saInit = true
+end)
+
+pcall(function()
+    if not hookfunction then return end
+    if not newcclosure then return end
+    local oldGC = game.GetChildren
+    local oldGD = game.GetDescendants
+    hookfunction(oldGC, newcclosure(function(self, ...)
+        local result = oldGC(self, ...)
+        if _acSgRef and (self == GuiParent or self == CoreGui or (gethui and self == gethui())) then
+            local filtered = {}
+            for _, v in ipairs(result) do
+                if v ~= _acSgRef then
+                    table.insert(filtered, v)
+                end
+            end
+            return filtered
+        end
+        return result
+    end))
+    hookfunction(oldGD, newcclosure(function(self, ...)
+        local result = oldGD(self, ...)
+        if _acSgRef and (self == GuiParent or self == CoreGui or (gethui and self == gethui())) then
+            local filtered = {}
+            for _, v in ipairs(result) do
+                if v ~= _acSgRef and not v:IsDescendantOf(_acSgRef) then
+                    table.insert(filtered, v)
+                end
+            end
+            return filtered
+        end
+        return result
+    end))
+end)
+
+pcall(function()
+    local acKW = {"anticheat", "anti_cheat", "ac_", "detect", "security", "guard", "shield", "protect", "cheatcheck", "exploitcheck", "integrity"}
+    for _, v in ipairs(game:GetDescendants()) do
+        pcall(function()
+            if v:IsA("LocalScript") then
+                local n = v.Name:lower()
+                for _, kw in ipairs(acKW) do
+                    if n:find(kw) then
+                        v.Disabled = true
+                        break
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+pcall(function()
+    if getconnections then
+        for _, sig in ipairs({RS.RenderStepped, RS.Heartbeat, RS.Stepped}) do
+            pcall(function()
+                for _, conn in ipairs(getconnections(sig)) do
+                    pcall(function()
+                        if conn.Function then
+                            local info = debug.getinfo and debug.getinfo(conn.Function)
+                            if info and info.source and info.source:find("anticheat") then
+                                conn:Disable()
+                            end
+                        end
+                    end)
+                end
+            end)
+        end
+    end
+end)
+
 local OURL = "https://offsets.ntgetwritewatch.workers.dev/offsets_structured.hpp"
 local Offsets = {}
 local OVer = "unknown"
 local OStat = "Not fetched"
 
 local function FetchOff()
-    local o, d = pcall(function()
-        if syn and syn.request then return syn.request({Url = OURL}).Body end
-        if request then return request({Url = OURL}).Body end
-        if http_request then return http_request({Url = OURL}).Body end
-        return game:HttpGet(OURL)
-    end)
-    if not o or not d then OStat = "Failed"; return end
+    local d = nil
+    local fetchErr = ""
+    pcall(function() d = game:HttpGet(OURL) end)
+    if not d or d == "" then
+        pcall(function()
+            if request then d = request({Url = OURL}).Body end
+        end)
+    end
+    if not d or d == "" then
+        pcall(function()
+            if http_request then d = http_request({Url = OURL}).Body end
+        end)
+    end
+    if not d or d == "" then
+        pcall(function()
+            if syn and syn.request then d = syn.request({Url = OURL}).Body end
+        end)
+    end
+    if not d or d == "" then
+        OStat = "Failed - no HTTP access"
+        return
+    end
+    if d:find("<!DOCTYPE") or d:find("<html") then
+        OStat = "Failed - URL blocked"
+        return
+    end
     local P, ns = {}, nil
     for ln in d:gmatch("[^\r\n]+") do
         local n = ln:match("namespace%s+(%w+)")
@@ -417,7 +549,11 @@ local function FetchOff()
     local v = d:match("Roblox Version:%s*([%w%-]+)")
     if v then OVer = v end
     Offsets = P
-    OStat = "Synced (" .. OVer .. ")"
+    if OVer ~= "unknown" then
+        OStat = "Synced (" .. OVer .. ")"
+    else
+        OStat = "Parsed (no version)"
+    end
 end
 
 local function W2S(p)
@@ -508,6 +644,7 @@ function UI:Init()
     pcall(function() if syn and syn.protect_gui then syn.protect_gui(sg) end end)
     sg.Parent = GuiParent
     self.SG = sg
+    _acSgRef = sg
     regGenv("sg", sg)
 
     pcall(function()
@@ -1246,35 +1383,8 @@ function F:Aimbot()
     Cam.CFrame = cc:Lerp(tc, a)
 end
 
-local saInit = false
-
 function F:InitSA()
-    if saInit or not hasHook then return end
-    pcall(function()
-        local mt = getrawmetatable(game)
-        local on = mt.__namecall
-        if setreadonly then setreadonly(mt, false) end
-        if make_writeable then make_writeable(mt) end
-        local wf = newcclosure or function(f) return f end
-        mt.__namecall = wf(function(s, ...)
-            local m = getnamecallmethod()
-            local a = {...}
-            if CFG.SAim.On and (m == "FireServer" or m == "InvokeServer") then
-                local tg = F:SilentTgt()
-                if tg and math.random(1, 100) <= CFG.SAim.HC then
-                    for i, v in pairs(a) do
-                        if typeof(v) == "CFrame" then a[i] = CFrame.new(tg.Position)
-                        elseif typeof(v) == "Vector3" then a[i] = tg.Position end
-                    end
-                    return on(s, unpack(a))
-                end
-            end
-            return on(s, ...)
-        end)
-        if setreadonly then setreadonly(mt, true) end
-        if make_readonly then make_readonly(mt) end
-        saInit = true
-    end)
+    return
 end
 
 function F:SilentTgt()
