@@ -106,7 +106,8 @@ local RunService         = game:GetService("RunService")
 local UserInputService   = game:GetService("UserInputService")
 local TweenService       = game:GetService("TweenService")
 local Lighting           = game:GetService("Lighting")
-local CoreGui            = game:GetService("CoreGui")
+local CoreGui = nil
+pcall(function() CoreGui = game:GetService("CoreGui") end)
 local Workspace          = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
@@ -123,34 +124,18 @@ pcall(function() VirtualUser = game:GetService("VirtualUser") end)
 
 -- ═══════════════════════════════════════════════════════════════
 -- [SECTION 1.5] GUI PARENT RESOLUTION
+-- PlayerGui FIRST — works on ALL executors (Xeno, Fluxus, KRNL, etc.)
+-- gethui() or CoreGui only used if explicitly available and proven
 -- ═══════════════════════════════════════════════════════════════
 
-local GuiParent = nil
+local GuiParent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Method 1: gethui()
+-- Try gethui() as an upgrade (hides GUI from game scripts)
 if HAS_GETHUI then
-    pcall(function() GuiParent = gethui() end)
-end
-
--- Method 2: CoreGui (with optional protection)
-if not GuiParent then
-    local ok = pcall(function()
-        local testGui = Instance.new("ScreenGui")
-        testGui.Name = "BSTest_" .. math.random(100000, 999999)
-        if HAS_PROTECT then
-            pcall(function() syn.protect_gui(testGui) end)
-        end
-        testGui.Parent = CoreGui
-        testGui:Destroy()
+    pcall(function()
+        local testParent = gethui()
+        if testParent then GuiParent = testParent end
     end)
-    if ok then
-        GuiParent = CoreGui
-    end
-end
-
--- Method 3: PlayerGui fallback
-if not GuiParent then
-    GuiParent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
 -- ═══════════════════════════════════════════════════════════════
@@ -499,27 +484,51 @@ local Theme = {
 }
 
 function UI:Init()
+    -- Clean up any existing GUI from previous execution
     pcall(function()
-        if GuiParent:FindFirstChild("BloxStrikeDom") then
-            GuiParent:FindFirstChild("BloxStrikeDom"):Destroy()
+        for _, g in ipairs(LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
+            if g.Name == "BloxStrikeDom" then g:Destroy() end
         end
     end)
     pcall(function()
-        if CoreGui:FindFirstChild("BloxStrikeDom") then
-            CoreGui:FindFirstChild("BloxStrikeDom"):Destroy()
+        for _, g in ipairs(CoreGui:GetChildren()) do
+            if g.Name == "BloxStrikeDom" then g:Destroy() end
         end
     end)
+    if HAS_GETHUI then
+        pcall(function()
+            for _, g in ipairs(gethui():GetChildren()) do
+                if g.Name == "BloxStrikeDom" then g:Destroy() end
+            end
+        end)
+    end
 
+    -- Create ScreenGui with maximum compatibility settings
     self.ScreenGui = Instance.new("ScreenGui")
     self.ScreenGui.Name = "BloxStrikeDom"
     self.ScreenGui.ResetOnSpawn = false
+    self.ScreenGui.Enabled = true
+    pcall(function() self.ScreenGui.DisplayOrder = 999999 end)
+    pcall(function() self.ScreenGui.IgnoreGuiInset = true end)
     pcall(function() self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling end)
 
+    -- Protect GUI if Synapse
     if HAS_PROTECT then
         pcall(function() syn.protect_gui(self.ScreenGui) end)
     end
 
+    -- Parent the GUI
     self.ScreenGui.Parent = GuiParent
+
+    -- Respawn protection: re-parent GUI if PlayerGui gets cleared
+    pcall(function()
+        LocalPlayer.CharacterAdded:Connect(function()
+            safeWait(1)
+            if self.ScreenGui and not self.ScreenGui.Parent then
+                self.ScreenGui.Parent = GuiParent
+            end
+        end)
+    end)
 
     NotifHolder = CreateNotifHolder(self.ScreenGui)
 
