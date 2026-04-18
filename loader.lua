@@ -6,4 +6,4 @@
     and REPO_NAME with your repository name.
 ]]
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/REPO_NAME/main/bloxstrike_hub.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/CTpRedictor/script-pula-mea/tree/main/bloxstrike_hub.lua"))()
