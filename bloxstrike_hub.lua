@@ -1,32 +1,29 @@
---[[
-    ╔═══════════════════════════════════════════════════════════════════╗
-    ║                                                                   ║
-    ║              B L O X S T R I K E   D O M I N A T I O N            ║
-    ║                     Premium Script Hub v2.2                       ║
-    ║                                                                   ║
-    ║        Auto-Updating Offsets · Modern ImGui · Full PVP Suite      ║
-    ║         Cross-Executor Compatible (Synapse/Fluxus/KRNL/etc)       ║
-    ║                                                                   ║
-    ╚═══════════════════════════════════════════════════════════════════╝
-]]
+--================================================
+-- BLOXSTRIKE DOMINATION - Premium Script Hub v2.3
+-- Auto-Updating Offsets / Modern ImGui / Full PVP
+-- Universal Executor Support
+--================================================
 
--- ═══════════════════════════════════════════════════════════════
--- [SECTION 0] CROSS-EXECUTOR COMPATIBILITY LAYER
--- Everything here is wrapped in pcall to prevent ANY crash
--- ═══════════════════════════════════════════════════════════════
+print("[BS] v2.3 - Script starting...")
 
--- Safe wait/spawn (using pcall to guarantee these exist)
-local safeWait = wait
-pcall(function()
-    if task and task.wait then safeWait = task.wait end
-end)
+-- [SECTION 0] UNIVERSAL COMPATIBILITY LAYER
+-- Every single line uses pcall for maximum safety
 
-local safeSpawn = spawn
-pcall(function()
-    if task and task.spawn then safeSpawn = task.spawn end
-end)
+-- Step 1: Safe wait/spawn with multiple fallbacks
+local safeWait = nil
+local safeSpawn = nil
 
--- Drawing API check
+pcall(function() if type(task) == "table" and task.wait then safeWait = task.wait end end)
+if not safeWait then pcall(function() if type(wait) == "function" then safeWait = wait end end) end
+if not safeWait then safeWait = function(n) local e = tick() + (n or 0) while tick() < e do end end end
+
+pcall(function() if type(task) == "table" and task.spawn then safeSpawn = task.spawn end end)
+if not safeSpawn then pcall(function() if type(spawn) == "function" then safeSpawn = spawn end end) end
+if not safeSpawn then safeSpawn = function(f) coroutine.wrap(f)() end end
+
+print("[BS] Step 1 OK - wait/spawn ready")
+
+-- Step 2: Drawing API check
 local HAS_DRAWING = false
 pcall(function()
     local test = Drawing.new("Line")
@@ -34,46 +31,47 @@ pcall(function()
     HAS_DRAWING = true
 end)
 
--- gethui check (safe)
+-- Step 3: Executor feature checks
 local HAS_GETHUI = false
-pcall(function()
-    if gethui then HAS_GETHUI = true end
-end)
+pcall(function() if gethui then HAS_GETHUI = true end end)
 
--- Synapse check (safe)
 local HAS_PROTECT = false
-pcall(function()
-    if syn and syn.protect_gui then HAS_PROTECT = true end
-end)
+pcall(function() if syn and syn.protect_gui then HAS_PROTECT = true end end)
 
--- Hookmetamethod check (safe)
 local HAS_HOOKMT = false
-pcall(function()
-    if getrawmetatable then HAS_HOOKMT = true end
-end)
+pcall(function() if getrawmetatable then HAS_HOOKMT = true end end)
 
--- Safe font resolver
-local function safeFont(name, fallback)
+print("[BS] Step 2-3 OK - Drawing:" .. tostring(HAS_DRAWING))
+
+-- Step 4: Safe font resolver (all enum access wrapped)
+local _defaultFont = nil
+pcall(function() _defaultFont = Enum.Font.SourceSans end)
+if not _defaultFont then pcall(function() _defaultFont = Enum.Font.Legacy end) end
+
+local function safeFont(name)
     local ok, f = pcall(function() return Enum.Font[name] end)
     if ok and f then return f end
-    return fallback or Enum.Font.SourceSans
+    return _defaultFont
 end
 
-local Fonts = {
-    Bold    = safeFont("GothamBold", Enum.Font.SourceSansBold),
-    Medium  = safeFont("GothamMedium", Enum.Font.SourceSans),
-    Regular = safeFont("Gotham", Enum.Font.SourceSans),
-}
+local Fonts = {}
+pcall(function() Fonts.Bold = safeFont("GothamBold") or _defaultFont end)
+pcall(function() Fonts.Medium = safeFont("GothamMedium") or _defaultFont end)
+pcall(function() Fonts.Regular = safeFont("Gotham") or _defaultFont end)
+if not Fonts.Bold then Fonts.Bold = _defaultFont end
+if not Fonts.Medium then Fonts.Medium = _defaultFont end
+if not Fonts.Regular then Fonts.Regular = _defaultFont end
 
--- Safe RaycastFilterType
-local FilterExclude = Enum.RaycastFilterType.Blacklist
-pcall(function()
-    if Enum.RaycastFilterType.Exclude then
-        FilterExclude = Enum.RaycastFilterType.Exclude
-    end
-end)
+print("[BS] Step 4 OK - Fonts ready")
 
--- Safe instance creation
+-- Step 5: Safe RaycastFilterType
+local FilterExclude = nil
+pcall(function() FilterExclude = Enum.RaycastFilterType.Exclude end)
+if not FilterExclude then pcall(function() FilterExclude = Enum.RaycastFilterType.Blacklist end) end
+
+print("[BS] Step 5 OK - RaycastFilter ready")
+
+-- Step 6: Safe instance creation
 local function safeNew(className, props, parent)
     local ok, inst = pcall(function()
         local i = Instance.new(className)
@@ -82,20 +80,18 @@ local function safeNew(className, props, parent)
                 pcall(function() i[k] = v end)
             end
         end
-        if parent then
-            i.Parent = parent
-        end
+        if parent then i.Parent = parent end
         return i
     end)
     if ok then return inst end
     return nil
 end
 
--- ═══════════════════════════════════════════════════════════════
--- MAIN SCRIPT WRAPPED IN XPCALL FOR ERROR REPORTING
--- ═══════════════════════════════════════════════════════════════
+print("[BS] Step 6 OK - All compatibility checks passed")
+print("[BS] Entering main script...")
 
-local mainOk, mainErr = xpcall(function()
+-- MAIN SCRIPT BODY
+local mainOk, mainErr = pcall(function()
 
 -- ═══════════════════════════════════════════════════════════════
 -- [SECTION 1] SERVICES & CORE REFERENCES
@@ -1882,13 +1878,10 @@ print("[BloxStrike Domination] GUI -> " .. tostring(GuiParent))
 print("[BloxStrike Domination] Drawing: " .. tostring(HAS_DRAWING))
 print("[BloxStrike Domination] Offsets: " .. OffsetStatus)
 
-end, function(err)
-    -- ERROR HANDLER — prints the actual error to console
-    warn("[BloxStrike Domination] FATAL ERROR:")
-    warn(tostring(err))
-    warn(debug.traceback())
 end)
 
 if not mainOk then
-    warn("[BloxStrike Domination] Script failed to initialize. Check errors above.")
+    local warnFn = warn or print
+    warnFn("[BloxStrike Domination] FATAL ERROR: " .. tostring(mainErr))
+    pcall(function() warnFn(debug.traceback()) end)
 end
