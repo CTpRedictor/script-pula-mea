@@ -1,129 +1,65 @@
-# ⚡ BloxStrike Domination v2.0
+# BloxStrike Domination v4.0
 
-> Premium PVP Script Hub for BloxStrike with Auto-Updating Offsets
+Premium stealth script hub for BloxStrike with full anti-detection.
 
-![Lua](https://img.shields.io/badge/Lua-5.1-blue?logo=lua)
-![Version](https://img.shields.io/badge/version-2.0-cyan)
-![Status](https://img.shields.io/badge/status-undetected-green)
+## Features
 
----
+### Combat
+- **Aimbot** - Smooth aim assist with human-like jitter (anti-detect)
+- **Silent Aim** - Redirects shots server-side via namecall hook
+- **Triggerbot** - Auto-fire with randomized delay (anti-detect)
+- **No Recoil** - Camera stabilization during fire
 
-## 🎯 Features
+### Visuals
+- **Player ESP** - Boxes, names, health bars, distance, tracers (Drawing API only - invisible to anti-cheat)
+- **Custom Crosshair** - Configurable size, gap, thickness, center dot
+- **Fullbright** - See in dark areas
+- **No Fog** - Remove fog effects
 
-### ⚔ Combat
-| Feature | Description |
-|---------|-------------|
-| **Aimbot** | Smooth camera-based aim with FOV limit, wall check, team check, bone selection, and velocity prediction |
-| **Silent Aim** | Redirects shots server-side via namecall hook with configurable hit chance |
-| **Triggerbot** | Auto-fires when crosshair hovers over an enemy with adjustable delay |
-| **No Recoil** | Stabilizes camera during firing to eliminate recoil |
-| **Rapid Fire** | Increases weapon fire rate with speed multiplier |
+### Movement
+- **Bunny Hop** - Auto jump when holding space
+- **Speed Boost** - CFrame-based speed (no WalkSpeed modification = undetected)
+- **Infinite Jump** - Jump in mid-air
+- **Fly** - CFrame-based flight (no BodyVelocity = undetected)
+- **Noclip** - Walk through walls
 
-### 👁 Visuals
-| Feature | Description |
-|---------|-------------|
-| **ESP Boxes** | 2D bounding boxes around all enemies |
-| **ESP Names** | Display player names above their character |
-| **ESP Health** | Health bars with color gradient (green→red) |
-| **ESP Distance** | Shows distance in meters below each player |
-| **ESP Skeleton** | Full R15 skeleton wireframe overlay |
-| **ESP Tracers** | Lines from screen edge to enemy position |
-| **Chams** | Highlight-based wallhack (see through walls) |
-| **Custom Crosshair** | Configurable crosshair with gap, size, thickness, and center dot |
-| **FOV Circle** | Visual circle showing aimbot targeting range |
-| **Fullbright** | Removes all darkness from the map |
-| **No Fog** | Removes fog for maximum visibility |
-| **Hit Markers** | Visual feedback (X marks) when hitting a player |
+### Utility
+- **Anti-AFK** - Prevents idle kick
+- **Third Person Lock** - Lock camera distance
+- **Auto-Updating Offsets** - Fetches latest Roblox offsets automatically
 
-### 🏃 Movement
-| Feature | Description |
-|---------|-------------|
-| **Bunny Hop** | Auto-jump when holding space for continuous hopping |
-| **Speed Boost** | Adjustable walk speed (16-60, clamped for stealth) |
-| **Infinite Jump** | Jump in mid-air without limits |
-| **Fly** | Full 3D flight with WASD + Space/Ctrl controls |
-| **Noclip** | Walk through walls and solid objects |
+## Anti-Detection (v4.0)
 
-### ⚙ Misc
-| Feature | Description |
-|---------|-------------|
-| **Anti-AFK** | Prevents idle disconnect |
-| **Kill Sound** | Plays a sound effect when an enemy dies |
-| **Third Person** | Locks camera to third-person at configurable distance |
-| **Offset Refresh** | Force-refresh game offsets from remote server |
-| **Unload** | Cleanly removes all script traces |
+| Detection Vector | Old Method (Detected) | v4.0 Method (Stealth) |
+|---|---|---|
+| GUI Names | `BloxStrikeDom`, `BSDom` | Random 16-char strings |
+| GUI Parent | CoreGui (scanned by BAC) | `gethui()` (invisible to game) |
+| Speed Hack | Direct `WalkSpeed` change | CFrame-based movement |
+| Fly Hack | `BodyVelocity` + `BodyGyro` | CFrame teleportation |
+| Chams | `Highlight` instances | Removed (Drawing ESP only) |
+| Aimbot | Perfect tracking | Human-like jitter + random alpha |
+| Triggerbot | Fixed delay | Randomized delay (+/- 20ms) |
+| HTTP Fetch | Immediate on load | Delayed 2-4 seconds |
+| Instance Names | Readable names | All randomized |
 
----
+## Usage
 
-## 🔄 Auto-Updating Offsets
+1. Open your executor (Xeno, Fluxus, KRNL, etc.)
+2. Copy entire contents of `bloxstrike_hub.lua`
+3. Paste into executor and execute
+4. Press **RightCtrl** to toggle menu
 
-The script automatically fetches the latest Roblox offsets from:
-```
-https://offsets.ntgetwritewatch.workers.dev/offsets_structured.hpp
-```
-
-- Offsets are fetched on script load
-- Auto-refreshes every 5 minutes while running
-- Manual refresh button in the Misc tab
-- Status displayed in the bottom bar of the UI
-
----
-
-## 📦 Installation
-
-### Quick Load (Paste in Executor)
-```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/bloxstrike_hub.lua"))()
-```
-
-### Manual
-1. Download `bloxstrike_hub.lua`
-2. Open your Roblox executor
-3. Load and execute the script
-4. Press **RightCtrl** to toggle the menu
-
----
-
-## 🎮 Controls
+## Controls
 
 | Key | Action |
-|-----|--------|
-| `RightCtrl` | Toggle menu visibility |
-| `Right Mouse Button` | Hold to aim (Aimbot) |
-| `WASD` | Fly movement directions |
-| `Space` | Fly up / Bunny hop |
-| `Left Ctrl` | Fly down |
+|---|---|
+| RightCtrl | Toggle menu |
+| Right Click (hold) | Activate aimbot |
 
----
+## Notes
 
-## 🛡️ Anti-Detection Notes
-
-- Pure Lua — no DLL injection, no memory writes
-- Aimbot uses smooth camera interpolation, not instant snaps
-- Speed values clamped to reasonable ranges
-- All features wrapped in `pcall` for error safety
-- Clean unload removes every trace of the script
-- No suspicious remote event spamming
-
----
-
-## 🏗️ File Structure
-
-```
-├── bloxstrike_hub.lua    # Main script (all features)
-├── loader.lua            # One-line loader for executors
-└── README.md             # This file
-```
-
----
-
-## ⚠️ Disclaimer
-
-This script is provided for educational purposes. Use at your own risk.
-
----
-
-<p align="center">
-  <b>⚡ BloxStrike Domination v2.0 ⚡</b><br>
-  <i>Built with precision. Designed to dominate.</i>
-</p>
+- All features use `pcall` wrapping for crash protection
+- ESP uses Drawing API (executor-side rendering, invisible to game)
+- Speed/Fly use CFrame manipulation (no detectable body movers)
+- GUI elements use randomized names on every execution
+- Compatible with all major executors (Xeno, Fluxus, KRNL, Synapse, Wave, Delta)
